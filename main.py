@@ -1,7 +1,5 @@
-
 import os
 import subprocess
-import threading
 from tkinter import filedialog, Tk
 from pystray import Icon as icon, Menu as menu, MenuItem as item
 from PIL import Image, ImageDraw
@@ -29,39 +27,50 @@ def get_icon_image():
         return create_image(64, 64, "black", "green")
     elif status == "Idle":
         return create_image(64, 64, "black", "grey")
-    else: # Error
+    else:  # Error
         return create_image(64, 64, "black", "red")
 
 def update_menu():
     """Updates the tray menu based on the current state."""
     global tray_icon
-    tray_icon.menu = menu(
+    menu_items = [
         item(f"Status: {status}", None),
         item("Start" if kanata_process is None else "Stop", on_start_stop),
-        item("Select Config File", on_select_config),
-        item("Quit", on_quit),
-    )
+    ]
+    if status == "Idle":
+        menu_items.append(item("Select Config File", on_select_config))
+    menu_items.append(item("Quit", on_quit))
+    tray_icon.menu = menu(*menu_items)
     tray_icon.icon = get_icon_image()
 
+def start_kanata():
+    """Starts the kanata process."""
+    global kanata_process, status
+    if not config_file:
+        status = "Config file not selected"
+    else:
+        try:
+            kanata_process = subprocess.Popen(["kanata", "-c", config_file])
+            status = "Running"
+        except FileNotFoundError:
+            status = "kanata not found"
+        except Exception as e:
+            status = f"Error: {e}"
 
-def on_start_stop(icon, item):
-    """Starts or stops the kanata process."""
+def stop_kanata():
+    """Stops the kanata process."""
     global kanata_process, status
     if kanata_process:
         kanata_process.terminate()
         kanata_process = None
         status = "Idle"
+
+def on_start_stop(icon, item):
+    """Starts or stops the kanata process."""
+    if kanata_process:
+        stop_kanata()
     else:
-        if not config_file:
-            status = "Config file not selected"
-        else:
-            try:
-                kanata_process = subprocess.Popen(["kanata", "-c", config_file])
-                status = "Running"
-            except FileNotFoundError:
-                status = "kanata not found"
-            except Exception as e:
-                status = f"Error: {e}"
+        start_kanata()
     update_menu()
 
 def on_select_config(icon, item):
@@ -101,19 +110,13 @@ def load_config():
 
 def main():
     """Main application entry point."""
-    global tray_icon
+    global tray_icon, status
     load_config()
-    tray_icon = icon(
-        APP_NAME,
-        icon=get_icon_image(),
-        title=APP_NAME,
-        menu=menu(
-            item(f"Status: {status}", None),
-            item("Start", on_start_stop),
-            item("Select Config File", on_select_config),
-            item("Quit", on_quit),
-        ),
-    )
+    if config_file:
+        start_kanata()
+    else:
+        status = "Config file not selected"
+    tray_icon = icon(APP_NAME, icon=get_icon_image(), title=APP_NAME)
     update_menu()
     tray_icon.run()
 
