@@ -1,6 +1,6 @@
 import os
 import subprocess
-from tkinter import filedialog, Tk
+import easygui
 from pystray import Icon as icon, Menu as menu, MenuItem as item
 from PIL import Image, ImageDraw
 
@@ -38,6 +38,7 @@ def update_menu():
         menu_items.append(item("Stop", on_start_stop))
     elif status == "Idle":
         menu_items.append(item("Start", on_start_stop))
+        menu_items.append(item("Select Config File", on_select_config))
     else:
         menu_items.append(item("Select Config File", on_select_config))
 
@@ -78,13 +79,7 @@ def on_start_stop(icon, item):
 def on_select_config(icon, item):
     """Opens a file dialog to select the kanata config file."""
     global config_file, status
-    root = Tk()
-    root.withdraw()
-    file_path = filedialog.askopenfilename(
-        title="Select Kanata Configuration File",
-        filetypes=(("Kanata Config", "*.kbd"), ("All files", "*.*")),
-    )
-    root.destroy()
+    file_path = easygui.fileopenbox(default='~/')
     if file_path:
         config_file = file_path
         save_config(config_file)
