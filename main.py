@@ -33,12 +33,14 @@ def get_icon_image():
 def update_menu():
     """Updates the tray menu based on the current state."""
     global tray_icon
-    menu_items = [
-        item(f"Status: {status}", None),
-        item("Start" if kanata_process is None else "Stop", on_start_stop),
-    ]
-    if status == "Idle":
+    menu_items = [item(f"Status: {status}", None)]
+    if status == "Running":
+        menu_items.append(item("Stop", on_start_stop))
+    elif status == "Idle":
+        menu_items.append(item("Start", on_start_stop))
+    else:
         menu_items.append(item("Select Config File", on_select_config))
+
     menu_items.append(item("Quit", on_quit))
     tray_icon.menu = menu(*menu_items)
     tray_icon.icon = get_icon_image()
