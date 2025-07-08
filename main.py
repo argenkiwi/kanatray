@@ -1,6 +1,7 @@
 import os
 import subprocess
-import easygui
+import tkinter as tk
+from tkinter import filedialog
 from pystray import Icon as icon, Menu as menu, MenuItem as item
 from PIL import Image, ImageDraw
 
@@ -38,9 +39,7 @@ def update_menu():
         menu_items.append(item("Stop", on_start_stop))
     elif status == "Idle":
         menu_items.append(item("Start", on_start_stop))
-        menu_items.append(item("Select Config File", on_select_config))
-    else:
-        menu_items.append(item("Select Config File", on_select_config))
+        menu_items.append(item("Reset", on_reset))
 
     menu_items.append(item("Quit", on_quit))
     tray_icon.menu = menu(*menu_items)
@@ -76,16 +75,18 @@ def on_start_stop(icon, item):
         start_kanata()
     update_menu()
 
-def on_select_config(icon, item):
+def on_select_config():
     """Opens a file dialog to select the kanata config file."""
     global config_file, status
-    file_path = easygui.fileopenbox(default='~/')
+    root = tk.Tk()
+    root.withdraw() # Hide the main window
+    file_path = filedialog.askopenfilename(title="Select a file", filetypes=[("KBD files", "*.kbd"), ("All files", "*.*")])
     if file_path:
         config_file = file_path
         save_config(config_file)
         if kanata_process is None:
             status = "Idle"
-    update_menu()
+            start_kanata()
 
 def on_quit(icon, item):
     """Exits the application."""
@@ -98,6 +99,20 @@ def save_config(path):
     with open(CONFIG_FILE_PATH, "w") as f:
         f.write(path)
 
+def delete_config():
+    """Deletes the config path."""
+    try:
+        os.remove(CONFIG_FILE_PATH)
+        print(f"File '{CONFIG_FILE_PATH}' deleted successfully.")
+    except FileNotFoundError:
+        print(f"File '{CONFIG_FILE_PATH}' not found.")
+    except OSError as e:
+        print(f"Error deleting file '{CONFIG_FILE_PATH}': {e}")
+
+def on_reset(icon, item):
+    delete_config()
+    on_quit(icon, item)
+                
 def load_config():
     """Loads the config file path."""
     global config_file
@@ -112,7 +127,8 @@ def main():
     if config_file:
         start_kanata()
     else:
-        status = "Config file not selected"
+        on_select_config()
+        
     tray_icon = icon(APP_NAME, icon=get_icon_image(), title=APP_NAME)
     update_menu()
     tray_icon.run()
